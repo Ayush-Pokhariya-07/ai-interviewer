@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const JobSchema = new mongoose.Schema({
+    recruiterId: {
+        type: String,
+        required: true,
+        index: true
+    },
     roleTitle: {
         type: String,
         required: true,
@@ -17,10 +22,11 @@ const JobSchema = new mongoose.Schema({
         default: 'Medium'
     },
     duration: {
-        type: String,
+        type: Number,
         required: true,
-        enum: ['Short (15 min)', 'Standard (30 min)', 'Deep Dive (60 min)'],
-        default: 'Standard (30 min)'
+        min: 1,
+        max: 120,
+        default: 15
     },
     createdAt: {
         type: Date,
@@ -29,3 +35,4 @@ const JobSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model('Job', JobSchema);
+

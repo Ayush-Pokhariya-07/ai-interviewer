@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "@clerk/clerk-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { motion, AnimatePresence } from "framer-motion";
@@ -139,11 +140,12 @@ const CustomSelect = ({
 
 const RecruiterJobPage = () => {
     const navigate = useNavigate();
+    const { user } = useUser();
     const [formData, setFormData] = useState({
         roleTitle: "",
         jobDescription: "",
         difficulty: "Medium",
-        duration: "Standard (30 min)",
+        duration: 15,
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [jobId, setJobId] = useState(null);
@@ -164,7 +166,10 @@ const RecruiterJobPage = () => {
         setError(null);
 
         try {
-            const response = await axios.post("/api/jobs/create", formData);
+            const response = await axios.post("/api/jobs/create", {
+                ...formData,
+                recruiterId: user?.id
+            });
 
             if (response.data.success) {
                 setJobId(response.data.data.id);
@@ -174,7 +179,7 @@ const RecruiterJobPage = () => {
             console.error("Job creation error:", err);
             setError(
                 err.response?.data?.message ||
-                    "Failed to create job. Please try again."
+                "Failed to create job. Please try again."
             );
         } finally {
             setIsSubmitting(false);
@@ -197,7 +202,7 @@ const RecruiterJobPage = () => {
             roleTitle: "",
             jobDescription: "",
             difficulty: "Medium",
-            duration: "Standard (30 min)",
+            duration: 15,
         });
         setCopied(false);
     };
@@ -206,12 +211,6 @@ const RecruiterJobPage = () => {
         { value: "Easy", label: "Easy - Entry Level" },
         { value: "Medium", label: "Medium - Mid-Level" },
         { value: "Hard", label: "Hard - Senior Level" },
-    ];
-
-    const durationOptions = [
-        { value: "Short (15 min)", label: "Short (15 min)" },
-        { value: "Standard (30 min)", label: "Standard (30 min)" },
-        { value: "Deep Dive (60 min)", label: "Deep Dive (60 min)" },
     ];
 
     return (
@@ -302,15 +301,25 @@ const RecruiterJobPage = () => {
                                         icon={Briefcase}
                                     />
 
-                                    {/* Duration */}
-                                    <CustomSelect
-                                        label="Duration"
-                                        name="duration"
-                                        value={formData.duration}
-                                        options={durationOptions}
-                                        onChange={handleInputChange}
-                                        icon={Briefcase}
-                                    />
+                                    {/* Duration - Number Input */}
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-300">
+                                            Duration (minutes)
+                                        </label>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="number"
+                                                name="duration"
+                                                value={formData.duration}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) || 1 }))}
+                                                min="1"
+                                                max="120"
+                                                required
+                                                className="flex-1 px-4 py-4 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:border-[#ccff00]/50 focus:ring-1 focus:ring-[#ccff00]/20 transition-all text-white"
+                                            />
+                                            <span className="text-gray-400 whitespace-nowrap">min (1-120)</span>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {error && (

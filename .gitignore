@@ -1,44 +1,22 @@
 # Dependencies
-node_modules/
-client/node_modules/
-package-lock.json
-yarn.lock
+node_modules
+/client/node_modules
 
-# Environment variables
+# Environment
 .env
-client/.env
+.env.local
+.DS_Store
 
-# Audio files (generated)
-public/audio/*.mp3
-
-# Uploads (temporary audio files)
-uploads/
+# Generated Files
+uploads/*
+!uploads/.gitkeep
+public/audio/*
+!public/audio/.gitkeep
 
 # Logs
-logs/
-*.log
-npm-debug.log*
-
-# OS files
-.DS_Store
-Thumbs.db
+npm-debug.log
+error.log
 
 # IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-
-# Build Output
-dist/
-build/
-client/dist/
+.vscode
+.idea

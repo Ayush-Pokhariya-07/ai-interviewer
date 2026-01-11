@@ -8,7 +8,6 @@ import {
     Cpu,
     Hexagon,
     Globe,
-    Share2,
     ArrowRight,
     Mic,
     FileText,
@@ -306,13 +305,11 @@ const LandingPage = () => {
                                                         key={i}
                                                         className="w-2 bg-[#ccff00] rounded-full animate-[bounce_1s_infinite]"
                                                         style={{
-                                                            height: `${
-                                                                Math.random() *
+                                                            height: `${Math.random() *
                                                                 100
-                                                            }%`,
-                                                            animationDelay: `${
-                                                                i * 0.1
-                                                            }s`,
+                                                                }% `,
+                                                            animationDelay: `${i * 0.1
+                                                                } s`,
                                                         }}
                                                     ></div>
                                                 ))}
@@ -380,18 +377,18 @@ const LandingPage = () => {
                                     <div className="mt-12 w-full h-64 bg-black/50 rounded-xl border border-white/10 overflow-hidden relative">
                                         <div className="absolute inset-0 p-4 font-mono text-xs text-white/20 overflow-hidden leading-relaxed">
                                             {`{
-  "candidate": {
-    "skills": ["React", "Node.js", "System Design"],
-    "experience_years": 4,
-    "projects": [
-      { "name": "E-commerce", "tech": "MERN" }
+    "candidate": {
+        "skills": ["React", "Node.js", "System Design"],
+            "experience_years": 4,
+                "projects": [
+                    { "name": "E-commerce", "tech": "MERN" }
+                ]
+    },
+    "generated_questions": [
+        "Explain the reconciliation process in React.",
+        "How would you scale a MongoDB database?"
     ]
-  },
-  "generated_questions": [
-    "Explain the reconciliation process in React.",
-    "How would you scale a MongoDB database?"
-  ]
-}`}
+} `}
                                         </div>
                                         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
                                         <div className="absolute bottom-4 left-4 right-4 flex items-center gap-3">
@@ -600,28 +597,6 @@ const LandingPage = () => {
                                 >
                                     Terms of Service
                                 </a>
-                            </div>
-
-                            <div className="flex gap-4">
-                                {["Twitter", "GitHub", "LinkedIn"].map(
-                                    (social) => (
-                                        <a
-                                            key={social}
-                                            href="#"
-                                            className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-white/40 hover:text-black hover:bg-[#ccff00] hover:border-[#ccff00] transition-all duration-300"
-                                        >
-                                            <span className="sr-only">
-                                                {social}
-                                            </span>
-                                            <Share2 className="w-4 h-4" />
-                                        </a>
-                                    )
-                                )}
-                            </div>
-
-                            <div className="text-white/20 text-xs font-mono">
-                                © 2024 AI INTERVIEWER. <br />
-                                OPEN SOURCE PROJECT
                             </div>
                         </div>
                     </div>

@@ -111,9 +111,20 @@ router.post('/process', upload.single('audio'), async (req, res) => {
             }
         }
 
+        // 3.6. Parse job context (optional - for job-specific interviews)
+        let jobContext = null;
+        if (req.body.jobContext) {
+            try {
+                jobContext = JSON.parse(req.body.jobContext);
+                console.log('💼 Job context received for:', jobContext.roleTitle);
+            } catch (e) {
+                console.warn('⚠️ Failed to parse job context:', e.message);
+            }
+        }
+
         // 4. Get AI response using Groq Llama
         console.log('🤖 Getting AI response...');
-        const aiTranscript = await getChatResponse(userTranscript, conversationHistory, resumeContext);
+        const aiTranscript = await getChatResponse(userTranscript, conversationHistory, resumeContext, jobContext);
         console.log('✅ AI Response:', aiTranscript);
 
         // 5. Convert AI response to speech
@@ -230,5 +241,12 @@ router.get('/health', (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
+
+/**
+ * @route   GET /api/interview/all
+ * @desc    Get all interviews from database
+ * @access  Public
+ */
+router.get('/all', getAllInterviews);
 
 module.exports = router;

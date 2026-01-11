@@ -32,6 +32,7 @@ const GlassPanel = ({ children, className }) => (
 
 const InterviewRoom = ({
     resumeData,
+    jobId,
     jobRole,
     jobDescription,
     difficulty,
@@ -52,9 +53,8 @@ const InterviewRoom = ({
 
     // Build personalized greeting based on resume and job data
     const buildGreeting = () => {
-        let greeting = `Hello ${
-            resumeData?.fullName || "there"
-        }! I'm your AI Interviewer. `;
+        let greeting = `Hello ${resumeData?.fullName || "there"
+            }! I'm your AI Interviewer. `;
 
         if (jobRole) {
             greeting += `Today, we'll be interviewing you for the role of ${jobRole}. `;
@@ -78,17 +78,32 @@ const InterviewRoom = ({
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
     const messagesEndRef = useRef(null);
+    const currentAudioRef = useRef(null);
 
     // Parse duration and start timer
     useEffect(() => {
-        if (duration) {
-            const match = duration.match(/(\d+)/);
-            if (match) {
-                const minutes = parseInt(match[1]);
-                setTimeRemaining(minutes * 60);
-                console.log(`⏱️ Timer set to ${minutes} minutes`);
+        console.log(`⏱️ Duration prop received:`, duration, `(type: ${typeof duration})`);
+
+        let minutes = null;
+
+        if (duration !== undefined && duration !== null) {
+            // Handle numeric duration (new format: 15, 30, etc.)
+            if (typeof duration === 'number' && duration > 0) {
+                minutes = duration;
+            }
+            // Handle string duration (legacy format: "Short (15 min)")
+            else if (typeof duration === 'string') {
+                const match = duration.match(/(\d+)/);
+                if (match) {
+                    minutes = parseInt(match[1]);
+                }
             }
         }
+
+        // Use parsed duration or fallback to 15 minutes
+        const finalMinutes = (minutes && minutes > 0) ? minutes : 15;
+        setTimeRemaining(finalMinutes * 60); // Convert to seconds
+        console.log(`⏱️ Timer set to ${finalMinutes} minutes`);
     }, [duration]);
 
     // Countdown timer
@@ -105,7 +120,21 @@ const InterviewRoom = ({
 
         if (timeRemaining === 0) {
             console.log("⏰ Timer expired - auto-ending interview");
-            handleEndInterview();
+
+            // Add goodbye message from interviewer
+            setMessages((prev) => [
+                ...prev,
+                {
+                    role: "assistant",
+                    content: "Thank you for your time today! Our interview session has come to an end. It was a pleasure speaking with you. I'll now prepare your performance report. Good luck with your career journey! 👋",
+                    timestamp: new Date().toISOString(),
+                },
+            ]);
+
+            // Short delay to show goodbye message, then end interview
+            setTimeout(() => {
+                handleEndInterview();
+            }, 2000);
             return;
         }
 
@@ -237,7 +266,11 @@ const InterviewRoom = ({
             if (audioUrl) {
                 setIsPlaying(true);
                 const audio = new Audio(audioUrl);
-                audio.onended = () => setIsPlaying(false);
+                currentAudioRef.current = audio; // Store reference
+                audio.onended = () => {
+                    setIsPlaying(false);
+                    currentAudioRef.current = null;
+                };
                 await audio.play();
             }
         } catch (err) {
@@ -249,6 +282,14 @@ const InterviewRoom = ({
     };
 
     const handleEndInterview = async () => {
+        // Stop any currently playing audio immediately
+        if (currentAudioRef.current) {
+            currentAudioRef.current.pause();
+            currentAudioRef.current.currentTime = 0;
+            currentAudioRef.current = null;
+            setIsPlaying(false);
+        }
+
         const conversationHistory = messages.slice(1).map((msg) => ({
             role: msg.role === "assistant" ? "assistant" : "user",
             content: msg.content,
@@ -268,6 +309,7 @@ const InterviewRoom = ({
             const payload = {
                 history: conversationHistory,
                 candidateName: resumeData?.fullName || "Anonymous",
+                jobId: jobId || null,
                 jobRole: jobRole || "Practice Interview",
                 difficulty: difficulty || "N/A",
                 duration: duration || "N/A",
@@ -387,11 +429,10 @@ const InterviewRoom = ({
                     {messages.map((msg, idx) => (
                         <div
                             key={idx}
-                            className={`flex ${
-                                msg.role === "user"
-                                    ? "justify-end"
-                                    : "justify-start"
-                            }`}
+                            className={`flex ${msg.role === "user"
+                                ? "justify-end"
+                                : "justify-start"
+                                }`}
                         >
                             <div
                                 className={cn(
@@ -444,8 +485,8 @@ const InterviewRoom = ({
                             isProcessing
                                 ? "border-white/10 text-white/20 cursor-not-allowed bg-white/5"
                                 : isRecording
-                                ? "border-red-500 bg-red-500/10 text-red-500 shadow-[0_0_30px_rgba(239,68,68,0.3)] animate-pulse"
-                                : "border-[#ccff00] bg-[#ccff00]/5 text-[#ccff00] hover:bg-[#ccff00]/10 hover:scale-105 hover:shadow-[0_0_30px_rgba(204,255,0,0.3)]"
+                                    ? "border-red-500 bg-red-500/10 text-red-500 shadow-[0_0_30px_rgba(239,68,68,0.3)] animate-pulse"
+                                    : "border-[#ccff00] bg-[#ccff00]/5 text-[#ccff00] hover:bg-[#ccff00]/10 hover:scale-105 hover:shadow-[0_0_30px_rgba(204,255,0,0.3)]"
                         )}
                     >
                         {isRecording ? (

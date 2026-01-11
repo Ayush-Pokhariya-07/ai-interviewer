@@ -185,7 +185,10 @@ const CandidateFlow = () => {
                     <header className="border-b border-white/5 bg-black/20 backdrop-blur-xl sticky top-0 z-50">
                         <div className="max-w-[1800px] mx-auto px-6 h-20 flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 bg-[#ccff00] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.2)]">
+                                <div
+                                    className="w-10 h-10 bg-[#ccff00] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.2)] cursor-pointer hover:scale-105 transition-transform"
+                                    onClick={() => navigate("/")}
+                                >
                                     <span className="text-black font-bold text-xl font-mono">
                                         AI
                                     </span>
@@ -227,6 +230,7 @@ const CandidateFlow = () => {
                     <main className="container mx-auto py-8 px-4 md:px-8">
                         <InterviewRoom
                             resumeData={resumeData}
+                            jobId={jobId}
                             jobRole={jobData?.roleTitle}
                             jobDescription={jobData?.jobDescription}
                             difficulty={jobData?.difficulty}

@@ -1,1 +1,5 @@
+# Python dependencies for AI Interviewer
+# Install with: pip install -r requirements.txt
+
+# Text-to-Speech using Microsoft Edge TTS
 edge-tts>=6.1.9

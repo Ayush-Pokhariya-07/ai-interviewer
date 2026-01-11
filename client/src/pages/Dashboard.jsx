@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { UserButton, useUser } from "@clerk/clerk-react";
 import {
     BarChart3,
     ArrowLeft,
@@ -9,7 +10,14 @@ import {
     Briefcase,
     Award,
     Search,
-    Filter,
+    Edit3,
+    Trash2,
+    Users,
+    TrendingUp,
+    Download,
+    Eye,
+    Clock,
+    ChevronRight,
 } from "lucide-react";
 import axios from "axios";
 import { clsx } from "clsx";
@@ -46,334 +54,474 @@ const GridPattern = () => (
 
 const Dashboard = () => {
     const navigate = useNavigate();
+    const { user } = useUser();
+    const [activeTab, setActiveTab] = useState("jobs");
+    const [jobs, setJobs] = useState([]);
     const [interviews, setInterviews] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [selectedJob, setSelectedJob] = useState(null);
+    const [jobInterviews, setJobInterviews] = useState([]);
+    const [editingJob, setEditingJob] = useState(null);
+    const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
-        fetchInterviews();
-    }, []);
+        if (user?.id) {
+            fetchData();
+        }
+    }, [user]);
 
-    const fetchInterviews = async () => {
+    const fetchData = async () => {
+        setIsLoading(true);
         try {
-            setIsLoading(true);
-            setError(null);
-
-            // TODO: Backend endpoint needs to be created
-            // For now, this will fail gracefully and show empty state
-            const response = await axios.get("/api/interview/all");
-            setInterviews(response.data.data || []);
+            const [jobsRes, interviewsRes] = await Promise.all([
+                axios.get(`/api/jobs/all?recruiterId=${user.id}`),
+                axios.get("/api/interview/all"),
+            ]);
+            setJobs(jobsRes.data.data || []);
+            setInterviews(interviewsRes.data.data || []);
         } catch (err) {
-            console.error("Failed to fetch interviews:", err);
-            // Set empty array on error to show "no interviews" state
-            setInterviews([]);
-            if (err.response?.status !== 404) {
-                setError(
-                    "Unable to load interviews. The endpoint may not be available yet."
-                );
-            }
+            console.error("Failed to fetch data:", err);
+            setError("Failed to load dashboard data");
         } finally {
             setIsLoading(false);
         }
     };
 
-    const getScoreBadgeColor = (score) => {
-        if (score >= 80)
-            return "bg-[#ccff00]/10 text-[#ccff00] border-[#ccff00]/20";
-        if (score >= 60) return "bg-white/5 text-white border-white/10";
-        return "bg-red-500/10 text-red-400 border-red-500/20";
+    const handleDeleteJob = async (jobId) => {
+        if (!window.confirm("Are you sure? This will delete all associated interviews.")) return;
+
+        try {
+            await axios.delete(`/api/jobs/${jobId}`);
+            setJobs(jobs.filter((j) => j.id !== jobId));
+        } catch (err) {
+            console.error("Delete failed:", err);
+        }
     };
 
-    const calculateAverageScore = () => {
-        if (interviews.length === 0) return 0;
-        const sum = interviews.reduce(
-            (acc, interview) => acc + (interview.technicalScore || 0),
-            0
-        );
-        return Math.round(sum / interviews.length);
+    const handleViewInterviews = async (job) => {
+        setSelectedJob(job);
+        try {
+            const res = await axios.get(`/api/jobs/${job.id}/interviews`);
+            setJobInterviews(res.data.data || []);
+        } catch (err) {
+            console.error("Failed to fetch interviews:", err);
+            setJobInterviews([]);
+        }
     };
 
-    const activeJobs = interviews.filter(
-        (i) => i.jobRole && i.jobRole !== "Practice"
-    ).length;
+    const downloadReport = (interview) => {
+        const date = new Date(interview.createdAt).toLocaleDateString();
+        const avg = interview.averageScore;
+
+        let content = `
+AI INTERVIEWER - CANDIDATE REPORT
+=================================
+Candidate: ${interview.candidateName}
+Date: ${date}
+
+SCORES
+------
+Technical: ${interview.technicalScore}/100
+Communication: ${interview.communicationScore}/100
+Confidence: ${interview.confidenceScore}/100
+Average: ${avg}/100
+
+FEEDBACK
+--------
+`;
+        interview.feedback?.forEach((f, i) => {
+            content += `${i + 1}. ${f.topic}\n   ${f.feedback}\n   Suggestion: ${f.suggestion}\n\n`;
+        });
+
+        const blob = new Blob([content], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `report-${interview.candidateName}-${date.replace(/\//g, "-")}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const getScoreColor = (score) => {
+        if (score >= 80) return "text-[#ccff00]";
+        if (score >= 60) return "text-white";
+        return "text-red-400";
+    };
+
+    // Analytics calculations
+    const totalInterviews = interviews.length;
+    const avgScore = interviews.length > 0
+        ? Math.round(interviews.reduce((acc, i) => acc + ((i.technicalScore + i.communicationScore + i.confidenceScore) / 3), 0) / interviews.length)
+        : 0;
+    const topPerformers = interviews.filter(i => ((i.technicalScore + i.communicationScore + i.confidenceScore) / 3) >= 80).length;
+
+    const filteredJobs = jobs.filter(j =>
+        j.roleTitle?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const tabs = [
+        { id: "jobs", label: "Jobs", icon: Briefcase },
+        { id: "candidates", label: "Candidates", icon: Users },
+        { id: "analytics", label: "Analytics", icon: TrendingUp },
+    ];
 
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-[#ccff00] selection:text-black font-sans relative overflow-x-hidden">
             <GridPattern />
 
-            {/* Ambient Glows */}
             <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-[#ccff00] rounded-full blur-[180px] opacity-[0.05] pointer-events-none"></div>
 
-            {/* Header */}
-            <header className="border-b border-white/5 bg-black/20 backdrop-blur-xl sticky top-0 z-50 relative">
-                <div className="max-w-[1800px] mx-auto px-6 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-8">
-                        <div
+            <div className="relative z-10 max-w-[1600px] mx-auto px-6 py-8">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-4">
+                        <button
                             onClick={() => navigate("/")}
-                            className="flex items-center gap-2 cursor-pointer group"
+                            className="flex items-center gap-2 text-white/60 hover:text-white transition-colors group"
                         >
                             <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#ccff00]/50 transition-colors">
                                 <ArrowLeft className="w-4 h-4 text-white group-hover:text-[#ccff00]" />
                             </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <span className="w-px h-8 bg-white/10"></span>
-                            <h1 className="font-medium text-lg tracking-tight">
-                                Recruiter{" "}
-                                <span className="text-white/40">Dashboard</span>
+                        </button>
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight">
+                                Recruiter Dashboard
                             </h1>
+                            <p className="text-white/40 text-sm mt-1">
+                                Manage jobs and view candidate analytics
+                            </p>
                         </div>
                     </div>
-                    <button
-                        onClick={() => navigate("/recruiter")}
-                        className="flex items-center gap-2 px-5 py-2 bg-[#ccff00] text-black rounded-full font-bold text-sm tracking-wide hover:bg-[#b3e600] transition-all shadow-[0_0_20px_rgba(204,255,0,0.15)] hover:shadow-[0_0_30px_rgba(204,255,0,0.3)] hover:-translate-y-0.5"
-                    >
-                        <Plus className="w-4 h-4" />
-                        New Job Post
-                    </button>
-                </div>
-            </header>
 
-            {/* Main Content */}
-            <div className="max-w-[1800px] mx-auto px-6 py-12 relative z-10">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate("/recruiter")}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-[#ccff00] text-black rounded-full font-bold text-sm tracking-wide hover:bg-[#b3e600] transition-all shadow-[0_0_20px_rgba(204,255,0,0.15)]"
+                        >
+                            <Plus className="w-4 h-4" />
+                            New Job
+                        </button>
+                        <UserButton
+                            afterSignOutUrl="/"
+                            appearance={{
+                                elements: {
+                                    avatarBox: "w-10 h-10"
+                                }
+                            }}
+                        />
+                    </div>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex gap-2 mb-8">
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={cn(
+                                "flex items-center gap-2 px-5 py-2.5 rounded-full font-medium text-sm transition-all",
+                                activeTab === tab.id
+                                    ? "bg-[#ccff00] text-black"
+                                    : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                            )}
+                        >
+                            <tab.icon className="w-4 h-4" />
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                    <GlassPanel className="rounded-2xl p-8 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <User className="w-24 h-24 text-white" />
-                        </div>
-                        <div className="relative z-10">
-                            <p className="text-white/40 font-mono text-xs uppercase tracking-widest mb-2">
-                                Total Candidates
-                            </p>
-                            <div className="text-5xl font-bold tracking-tight text-white mb-2">
-                                {interviews.length}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <GlassPanel className="p-6 rounded-2xl">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-[#ccff00]/10 flex items-center justify-center">
+                                <Briefcase className="w-6 h-6 text-[#ccff00]" />
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-[#ccff00]">
-                                <span className="bg-[#ccff00]/10 px-2 py-0.5 rounded border border-[#ccff00]/20">
-                                    +12%
-                                </span>
-                                <span className="text-white/40">
-                                    from last week
-                                </span>
+                            <div>
+                                <p className="text-white/40 text-sm">Active Jobs</p>
+                                <p className="text-3xl font-bold">{jobs.length}</p>
                             </div>
                         </div>
                     </GlassPanel>
 
-                    <GlassPanel className="rounded-2xl p-8 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <Briefcase className="w-24 h-24 text-[#ccff00]" />
-                        </div>
-                        <div className="relative z-10">
-                            <p className="text-white/40 font-mono text-xs uppercase tracking-widest mb-2">
-                                Active Roles
-                            </p>
-                            <div className="text-5xl font-bold tracking-tight text-white mb-2">
-                                {activeJobs}
+                    <GlassPanel className="p-6 rounded-2xl">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-[#ccff00]/10 flex items-center justify-center">
+                                <Users className="w-6 h-6 text-[#ccff00]" />
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-emerald-400">
-                                <span className="bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                                    Active
-                                </span>
-                                <span className="text-white/40">
-                                    hiring pipelines
-                                </span>
+                            <div>
+                                <p className="text-white/40 text-sm">Total Interviews</p>
+                                <p className="text-3xl font-bold">{totalInterviews}</p>
                             </div>
                         </div>
                     </GlassPanel>
 
-                    <GlassPanel className="rounded-2xl p-8 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <Award className="w-24 h-24 text-[#ccff00]" />
-                        </div>
-                        <div className="relative z-10">
-                            <p className="text-white/40 font-mono text-xs uppercase tracking-widest mb-2">
-                                Avg. Technical Score
-                            </p>
-                            <div className="text-5xl font-bold tracking-tight text-[#ccff00] mb-2">
-                                {calculateAverageScore()}%
+                    <GlassPanel className="p-6 rounded-2xl">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-[#ccff00]/10 flex items-center justify-center">
+                                <Award className="w-6 h-6 text-[#ccff00]" />
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-white">
-                                <span className="bg-white/10 px-2 py-0.5 rounded border border-white/20">
-                                    Top 15%
-                                </span>
-                                <span className="text-white/40">
-                                    market average
-                                </span>
+                            <div>
+                                <p className="text-white/40 text-sm">Avg Score</p>
+                                <p className={cn("text-3xl font-bold", getScoreColor(avgScore))}>{avgScore}</p>
                             </div>
                         </div>
                     </GlassPanel>
                 </div>
 
-                {/* Interviews Table */}
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-medium tracking-tight">
-                            Recent Interviews
-                        </h2>
-                        <div className="flex items-center gap-4">
-                            <div className="relative">
-                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-                                <input
-                                    type="text"
-                                    placeholder="Search candidates..."
-                                    className="bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-[#ccff00]/50 transition-colors w-64"
-                                />
-                            </div>
-                            <button className="p-2 rounded-full border border-white/10 hover:bg-white/5 text-white/60 hover:text-white">
-                                <Filter className="w-4 h-4" />
-                            </button>
-                        </div>
+                {isLoading ? (
+                    <div className="text-center py-20">
+                        <div className="w-8 h-8 rounded-full border-2 border-[#ccff00]/20 border-t-[#ccff00] animate-spin mx-auto mb-4"></div>
+                        <p className="text-white/40">Loading...</p>
                     </div>
-
-                    <GlassPanel className="rounded-2xl overflow-hidden">
-                        {isLoading ? (
-                            <div className="p-20 text-center">
-                                <div className="w-8 h-8 rounded-full border-2 border-[#ccff00]/20 border-t-[#ccff00] animate-spin mx-auto mb-4"></div>
-                                <p className="text-white/40 font-mono text-sm uppercase tracking-widest">
-                                    Loading Data...
-                                </p>
-                            </div>
-                        ) : error ? (
-                            <div className="p-20 text-center">
-                                <p className="text-red-400 mb-2 font-mono text-sm">
-                                    {error}
-                                </p>
-                            </div>
-                        ) : interviews.length === 0 ? (
-                            <div className="p-24 text-center">
-                                <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-6">
-                                    <BarChart3 className="w-10 h-10 text-white/20" />
+                ) : (
+                    <>
+                        {/* Jobs Tab */}
+                        {activeTab === "jobs" && (
+                            <div>
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="relative flex-1 max-w-md">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search jobs..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:border-[#ccff00]/50 text-sm"
+                                        />
+                                    </div>
                                 </div>
-                                <h3 className="text-xl font-medium text-white mb-2">
-                                    No Interviews Yet
-                                </h3>
-                                <p className="text-white/40 max-w-sm mx-auto mb-8">
-                                    Start by creating a job post and sharing the
-                                    link with candidates.
-                                </p>
-                                <button
-                                    onClick={() => navigate("/recruiter")}
-                                    className="px-8 py-3 bg-[#ccff00] text-black rounded-full font-bold text-sm tracking-wide hover:bg-[#b3e600] transition-colors"
-                                >
-                                    Create First Job
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-white/5 bg-white/[0.02]">
-                                            <th className="px-8 py-6 text-left text-xs font-mono font-medium text-white/40 uppercase tracking-widest">
-                                                Candidate
-                                            </th>
-                                            <th className="px-8 py-6 text-left text-xs font-mono font-medium text-white/40 uppercase tracking-widest">
-                                                Role
-                                            </th>
-                                            <th className="px-8 py-6 text-left text-xs font-mono font-medium text-white/40 uppercase tracking-widest">
-                                                Difficulty
-                                            </th>
-                                            <th className="px-8 py-6 text-left text-xs font-mono font-medium text-white/40 uppercase tracking-widest">
-                                                Duration
-                                            </th>
-                                            <th className="px-8 py-6 text-left text-xs font-mono font-medium text-white/40 uppercase tracking-widest">
-                                                Score
-                                            </th>
-                                            <th className="px-8 py-6 text-left text-xs font-mono font-medium text-white/40 uppercase tracking-widest">
-                                                Date
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/5">
-                                        {interviews.map((interview) => (
-                                            <tr
-                                                key={
-                                                    interview._id ||
-                                                    interview.id
-                                                }
-                                                className="hover:bg-white/[0.02] transition-colors group cursor-pointer"
-                                            >
-                                                <td className="px-8 py-5">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 rounded-xl bg-[#ccff00] text-black flex items-center justify-center font-bold">
-                                                            {(
-                                                                interview.candidateName ||
-                                                                "U"
-                                                            )
-                                                                .charAt(0)
-                                                                .toUpperCase()}
+
+                                {selectedJob ? (
+                                    <div>
+                                        <button
+                                            onClick={() => setSelectedJob(null)}
+                                            className="flex items-center gap-2 text-white/60 hover:text-white mb-4"
+                                        >
+                                            <ArrowLeft className="w-4 h-4" />
+                                            Back to Jobs
+                                        </button>
+
+                                        <GlassPanel className="rounded-2xl p-6 mb-6">
+                                            <h2 className="text-xl font-bold mb-2">{selectedJob.roleTitle}</h2>
+                                            <p className="text-white/40 text-sm mb-4">{selectedJob.jobDescription?.slice(0, 200)}...</p>
+                                            <div className="flex gap-4 text-sm text-white/60">
+                                                <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {selectedJob.duration} min</span>
+                                                <span>{selectedJob.difficulty}</span>
+                                                <span>{selectedJob.interviewCount} candidates</span>
+                                            </div>
+                                        </GlassPanel>
+
+                                        <h3 className="text-lg font-bold mb-4">Candidates</h3>
+                                        {jobInterviews.length === 0 ? (
+                                            <p className="text-white/40 text-center py-10">No candidates have completed interviews yet.</p>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {jobInterviews.map((interview) => (
+                                                    <GlassPanel key={interview.id} className="rounded-xl p-4 flex items-center justify-between">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-10 h-10 rounded-full bg-[#ccff00] text-black flex items-center justify-center font-bold">
+                                                                {interview.candidateName.charAt(0)}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-medium">{interview.candidateName}</p>
+                                                                <p className="text-white/40 text-sm">{new Date(interview.createdAt).toLocaleDateString()}</p>
+                                                            </div>
                                                         </div>
-                                                        <span className="font-medium text-white group-hover:text-[#ccff00] transition-colors">
-                                                            {interview.candidateName ||
-                                                                "Unknown"}
-                                                        </span>
+                                                        <div className="flex items-center gap-6">
+                                                            <div className="text-center">
+                                                                <p className="text-xs text-white/40">Technical</p>
+                                                                <p className={cn("font-bold", getScoreColor(interview.technicalScore))}>{interview.technicalScore}</p>
+                                                            </div>
+                                                            <div className="text-center">
+                                                                <p className="text-xs text-white/40">Communication</p>
+                                                                <p className={cn("font-bold", getScoreColor(interview.communicationScore))}>{interview.communicationScore}</p>
+                                                            </div>
+                                                            <div className="text-center">
+                                                                <p className="text-xs text-white/40">Confidence</p>
+                                                                <p className={cn("font-bold", getScoreColor(interview.confidenceScore))}>{interview.confidenceScore}</p>
+                                                            </div>
+                                                            <div className="text-center border-l border-white/10 pl-6">
+                                                                <p className="text-xs text-white/40">Average</p>
+                                                                <p className={cn("font-bold text-lg", getScoreColor(interview.averageScore))}>{interview.averageScore}</p>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => downloadReport(interview)}
+                                                                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                                                                title="Download Report"
+                                                            >
+                                                                <Download className="w-4 h-4 text-white/60 hover:text-[#ccff00]" />
+                                                            </button>
+                                                        </div>
+                                                    </GlassPanel>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {filteredJobs.length === 0 ? (
+                                            <div className="text-center py-20">
+                                                <Briefcase className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                                                <p className="text-white/40 mb-4">No jobs created yet</p>
+                                                <button
+                                                    onClick={() => navigate("/recruiter")}
+                                                    className="px-6 py-2.5 bg-[#ccff00] text-black rounded-full font-bold text-sm"
+                                                >
+                                                    Create Your First Job
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            filteredJobs.map((job) => (
+                                                <GlassPanel key={job.id} className="rounded-xl p-5 hover:border-[#ccff00]/30 transition-colors group">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-12 h-12 rounded-xl bg-[#ccff00]/10 flex items-center justify-center">
+                                                                <Briefcase className="w-5 h-5 text-[#ccff00]" />
+                                                            </div>
+                                                            <div>
+                                                                <h3 className="font-bold text-lg">{job.roleTitle}</h3>
+                                                                <div className="flex gap-4 text-sm text-white/40 mt-1">
+                                                                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {job.duration} min</span>
+                                                                    <span>{job.difficulty}</span>
+                                                                    <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {job.interviewCount} candidates</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="text-right mr-4">
+                                                                <p className="text-xs text-white/40">Avg Score</p>
+                                                                <p className={cn("text-xl font-bold", getScoreColor(job.avgScore))}>{job.avgScore || "-"}</p>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handleViewInterviews(job)}
+                                                                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                                                                title="View Candidates"
+                                                            >
+                                                                <Eye className="w-4 h-4 text-white/60" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteJob(job.id)}
+                                                                className="p-2 rounded-lg hover:bg-red-500/20 transition-colors"
+                                                                title="Delete Job"
+                                                            >
+                                                                <Trash2 className="w-4 h-4 text-white/60 hover:text-red-400" />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                </td>
-                                                <td className="px-8 py-5">
-                                                    <span
-                                                        className={
-                                                            !interview.jobRole ||
-                                                            interview.jobRole ===
-                                                                "Practice"
-                                                                ? "text-white/40 italic"
-                                                                : "text-white/80"
-                                                        }
-                                                    >
-                                                        {interview.jobRole ||
-                                                            "Practice"}
-                                                    </span>
-                                                </td>
-                                                <td className="px-8 py-5">
-                                                    <span
-                                                        className={cn(
-                                                            "px-3 py-1 rounded-full text-xs font-medium border",
-                                                            interview.difficulty ===
-                                                                "Hard"
-                                                                ? "bg-red-500/10 text-red-400 border-red-500/20"
-                                                                : interview.difficulty ===
-                                                                  "Medium"
-                                                                ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-                                                                : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                                        )}
-                                                    >
-                                                        {interview.difficulty ||
-                                                            "N/A"}
-                                                    </span>
-                                                </td>
-                                                <td className="px-8 py-5 text-white/40 text-sm font-mono">
-                                                    {interview.duration ||
-                                                        "N/A"}
-                                                </td>
-                                                <td className="px-8 py-5">
-                                                    <span
-                                                        className={cn(
-                                                            "px-3 py-1 rounded-full text-xs font-bold border",
-                                                            getScoreBadgeColor(
-                                                                interview.technicalScore ||
-                                                                    0
-                                                            )
-                                                        )}
-                                                    >
-                                                        {interview.technicalScore ||
-                                                            0}
-                                                        %
-                                                    </span>
-                                                </td>
-                                                <td className="px-8 py-5 text-white/40 text-sm font-mono">
-                                                    {interview.createdAt
-                                                        ? new Date(
-                                                              interview.createdAt
-                                                          ).toLocaleDateString()
-                                                        : "N/A"}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                                </GlassPanel>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
-                    </GlassPanel>
-                </div>
+
+                        {/* Candidates Tab */}
+                        {activeTab === "candidates" && (
+                            <div>
+                                <h2 className="text-lg font-bold mb-4">All Candidates ({interviews.length})</h2>
+                                {interviews.length === 0 ? (
+                                    <p className="text-white/40 text-center py-10">No interviews completed yet.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {interviews.map((interview) => (
+                                            <GlassPanel key={interview._id || interview.id} className="rounded-xl p-4 flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-full bg-[#ccff00] text-black flex items-center justify-center font-bold">
+                                                        {interview.candidateName?.charAt(0) || "?"}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium">{interview.candidateName}</p>
+                                                        <p className="text-white/40 text-sm">{interview.jobRole} • {new Date(interview.createdAt).toLocaleDateString()}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-6">
+                                                    <div className="text-center">
+                                                        <p className="text-xs text-white/40">Technical</p>
+                                                        <p className={cn("font-bold", getScoreColor(interview.technicalScore))}>{interview.technicalScore}</p>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <p className="text-xs text-white/40">Communication</p>
+                                                        <p className={cn("font-bold", getScoreColor(interview.communicationScore))}>{interview.communicationScore}</p>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <p className="text-xs text-white/40">Confidence</p>
+                                                        <p className={cn("font-bold", getScoreColor(interview.confidenceScore))}>{interview.confidenceScore}</p>
+                                                    </div>
+                                                </div>
+                                            </GlassPanel>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Analytics Tab */}
+                        {activeTab === "analytics" && (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <GlassPanel className="rounded-2xl p-6">
+                                    <h3 className="text-lg font-bold mb-4">Performance Overview</h3>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-white/60">Total Interviews</span>
+                                            <span className="font-bold text-2xl">{totalInterviews}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-white/60">Average Score</span>
+                                            <span className={cn("font-bold text-2xl", getScoreColor(avgScore))}>{avgScore}/100</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-white/60">Top Performers (80+)</span>
+                                            <span className="font-bold text-2xl text-[#ccff00]">{topPerformers}</span>
+                                        </div>
+                                    </div>
+                                </GlassPanel>
+
+                                <GlassPanel className="rounded-2xl p-6">
+                                    <h3 className="text-lg font-bold mb-4">Score Distribution</h3>
+                                    <div className="space-y-3">
+                                        {["Technical", "Communication", "Confidence"].map((metric) => {
+                                            const key = `${metric.toLowerCase()}Score`;
+                                            const avg = interviews.length > 0
+                                                ? Math.round(interviews.reduce((acc, i) => acc + (i[key] || 0), 0) / interviews.length)
+                                                : 0;
+                                            return (
+                                                <div key={metric}>
+                                                    <div className="flex justify-between text-sm mb-1">
+                                                        <span className="text-white/60">{metric}</span>
+                                                        <span className={getScoreColor(avg)}>{avg}%</span>
+                                                    </div>
+                                                    <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={cn("h-full rounded-full transition-all", avg >= 80 ? "bg-[#ccff00]" : avg >= 60 ? "bg-white" : "bg-red-400")}
+                                                            style={{ width: `${avg}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </GlassPanel>
+
+                                <GlassPanel className="rounded-2xl p-6 lg:col-span-2">
+                                    <h3 className="text-lg font-bold mb-4">Jobs Overview</h3>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        {jobs.slice(0, 4).map((job) => (
+                                            <div key={job.id} className="bg-white/5 rounded-xl p-4">
+                                                <p className="font-medium truncate">{job.roleTitle}</p>
+                                                <p className="text-white/40 text-sm">{job.interviewCount} candidates</p>
+                                                <p className={cn("text-2xl font-bold mt-2", getScoreColor(job.avgScore))}>{job.avgScore || "-"}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </GlassPanel>
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
         </div>
     );
