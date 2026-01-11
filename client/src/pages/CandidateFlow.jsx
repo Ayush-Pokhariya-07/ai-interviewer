@@ -3,7 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import InterviewRoom from "../components/InterviewRoom";
 import ResumeUpload from "../components/ResumeUpload";
-import { Loader2, AlertCircle, Briefcase, ChevronLeft } from "lucide-react";
+import { Loader2, AlertCircle, Briefcase, ChevronLeft, User } from "lucide-react";
+import { Link } from "react-router-dom";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -144,7 +145,7 @@ const CandidateFlow = () => {
                     <div className="p-6 md:px-12 flex justify-between items-center z-20 relative">
                         <div
                             className="flex items-center gap-2 cursor-pointer group"
-                            onClick={() => navigate("/")}
+                            onClick={() => navigate("/start")}
                         >
                             <div className="p-2 rounded-lg bg-white/5 border border-white/10 group-hover:bg-[#ccff00]/10 group-hover:border-[#ccff00]/20 transition-colors">
                                 <ChevronLeft className="w-5 h-5 text-white group-hover:text-[#ccff00]" />
@@ -153,9 +154,19 @@ const CandidateFlow = () => {
                                 BACK
                             </span>
                         </div>
-                        <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-[#ccff00] bg-[#ccff00]/5 px-3 py-1 rounded-full border border-[#ccff00]/20">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00] animate-pulse"></span>
-                            SYSTEM ONLINE
+                        <div className="flex items-center gap-3">
+                            <Link
+                                to="/signup"
+                                className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:bg-white/5 hover:border-white/20 transition-all text-sm font-medium backdrop-blur-md"
+                            >
+                                <User className="w-4 h-4" />
+                                <span className="hidden sm:inline">Recruiter Signup</span>
+                                <span className="sm:hidden">Signup</span>
+                            </Link>
+                            <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-[#ccff00] bg-[#ccff00]/5 px-3 py-1 rounded-full border border-[#ccff00]/20">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#ccff00] animate-pulse"></span>
+                                SYSTEM ONLINE
+                            </div>
                         </div>
                     </div>
 

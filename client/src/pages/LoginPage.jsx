@@ -1,85 +1,7 @@
-<<<<<<< HEAD
-import React from "react";
-import { SignUp } from "@clerk/clerk-react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
-
-const GridPattern = () => (
-    <div className="absolute inset-0 z-0 pointer-events-none fixed">
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
-        <div
-            className="absolute inset-0"
-            style={{
-                backgroundImage:
-                    "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
-                backgroundSize: "60px 60px",
-            }}
-        ></div>
-    </div>
-);
-
-const SignUpPage = () => {
-    const navigate = useNavigate();
-
-    return (
-        <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center relative overflow-hidden">
-            <GridPattern />
-
-            <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-[#ccff00] rounded-full blur-[180px] opacity-[0.05] pointer-events-none"></div>
-
-            <div className="relative z-10 w-full max-w-md px-4">
-                <button
-                    onClick={() => navigate("/")}
-                    className="flex items-center gap-2 text-white/60 hover:text-white transition-colors mb-8"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back to Home
-                </button>
-
-                <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-[#ccff00] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-[0_0_30px_rgba(204,255,0,0.3)]">
-                        <span className="text-black font-bold text-2xl font-mono">AI</span>
-                    </div>
-                    <h1 className="text-3xl font-bold tracking-tight">Create Account</h1>
-                    <p className="text-white/40 mt-2">Sign up to start creating AI interviews</p>
-                </div>
-
-                <SignUp
-                    appearance={{
-                        elements: {
-                            rootBox: "mx-auto",
-                            card: "bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl",
-                            headerTitle: "text-white",
-                            headerSubtitle: "text-white/60",
-                            socialButtonsBlockButton: "bg-white/10 border-white/20 text-white hover:bg-white/20",
-                            formFieldLabel: "text-white/60",
-                            formFieldInput: "bg-white/5 border-white/10 text-white",
-                            footerActionLink: "text-[#ccff00] hover:text-[#b3e600]",
-                            formButtonPrimary: "bg-[#ccff00] text-black hover:bg-[#b3e600]",
-                            dividerLine: "bg-white/10",
-                            dividerText: "text-white/40",
-                        }
-                    }}
-                    redirectUrl="/dashboard"
-                    signInUrl="/sign-in"
-                />
-            </div>
-        </div>
-    );
-=======
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import useAuthStore from "../store/useAuthStore";
-import {
-  Eye,
-  EyeOff,
-  Loader2,
-  Lock,
-  Mail,
-  User,
-  Brain,
-} from "lucide-react";
-import toast from "react-hot-toast";
+import { Eye, EyeOff, Loader2, Lock, Mail, Brain } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -101,16 +23,14 @@ const GridPattern = () => (
   </div>
 );
 
-const SignUpPage = () => {
+const LoginPage = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: "",
     email: "",
     password: "",
   });
-
-  const { signup, isSigningUp, authUser, checkAuthUser } = useAuthStore();
+  const { login, isLoggingIn, checkAuthUser } = useAuthStore();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -122,26 +42,9 @@ const SignUpPage = () => {
     checkAuth();
   }, [checkAuthUser, navigate]);
 
-  const validateForm = () => {
-    if (!formData.fullName.trim()) return toast.error("Full name is required");
-    if (!formData.email.trim()) return toast.error("Email is required");
-    if (!/\S+@\S+\.\S+/.test(formData.email))
-      return toast.error("Invalid email format");
-    if (!formData.password) return toast.error("Password is required");
-    if (formData.password.length < 6)
-      return toast.error("Password must be at least 6 characters");
-
-    return true;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const success = validateForm();
-
-    if (success === true) {
-      await signup(formData);
-    }
+    await login(formData);
   };
 
   return (
@@ -160,41 +63,15 @@ const SignUpPage = () => {
               <Brain className="w-8 h-8 text-[#ccff00]" />
             </div>
             <h1 className="text-3xl md:text-4xl font-medium text-white tracking-tighter mb-2">
-              Create Account
+              Welcome Back
             </h1>
             <p className="text-white/60 text-sm">
-              Get started with AI-powered interview practice
+              Sign in to continue your AI interview practice
             </p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-xs font-mono uppercase tracking-widest text-white/40 mb-3 ml-1">
-                Full Name
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-white/30" />
-                </div>
-                <input
-                  type="text"
-                  className={cn(
-                    "w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl",
-                    "text-white placeholder-white/30 focus:outline-none",
-                    "focus:border-[#ccff00]/50 focus:ring-2 focus:ring-[#ccff00]/20",
-                    "transition-all duration-200"
-                  )}
-                  placeholder="John Doe"
-                  value={formData.fullName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, fullName: e.target.value })
-                  }
-                  required
-                />
-              </div>
-            </div>
-
             <div>
               <label className="block text-xs font-mono uppercase tracking-widest text-white/40 mb-3 ml-1">
                 Email
@@ -260,7 +137,7 @@ const SignUpPage = () => {
 
             <button
               type="submit"
-              disabled={isSigningUp}
+              disabled={isLoggingIn}
               className={cn(
                 "w-full px-6 py-3 rounded-full text-sm font-medium tracking-wide",
                 "bg-[#ccff00] text-black hover:bg-[#b3e600] border border-[#ccff00]",
@@ -269,25 +146,25 @@ const SignUpPage = () => {
                 "disabled:opacity-50 disabled:cursor-not-allowed"
               )}
             >
-              {isSigningUp ? (
+              {isLoggingIn ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  Creating account...
+                  Signing in...
                 </>
               ) : (
-                "Create Account"
+                "Sign in"
               )}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-white/60 text-sm">
-              Already have an account?{" "}
+              Don't have an account?{" "}
               <Link
-                to="/login"
+                to="/signup"
                 className="text-[#ccff00] hover:text-[#b3e600] font-medium transition-colors"
               >
-                Sign in
+                Sign up
               </Link>
             </p>
           </div>
@@ -295,7 +172,6 @@ const SignUpPage = () => {
       </div>
     </div>
   );
->>>>>>> feature/auth-system
 };
 
-export default SignUpPage;
+export default LoginPage;
