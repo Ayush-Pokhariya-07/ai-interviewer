@@ -271,4 +271,11 @@ router.get("/health", (req, res) => {
   });
 });
 
+/**
+ * @route   GET /api/interview/all
+ * @desc    Get all interviews from database
+ * @access  Public
+ */
+router.get('/all', getAllInterviews);
+
 module.exports = router;

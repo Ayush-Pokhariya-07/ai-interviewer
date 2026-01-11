@@ -13,6 +13,7 @@ function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
+// FIX 1: Changed 'absolute' to 'fixed' to prevent background from scrolling away or causing overflow
 const GridPattern = () => (
   <div className="absolute inset-0 z-0 pointer-events-none fixed">
     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
