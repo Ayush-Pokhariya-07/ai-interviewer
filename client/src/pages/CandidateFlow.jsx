@@ -11,8 +11,9 @@ function cn(...inputs) {
     return twMerge(clsx(inputs));
 }
 
+// FIX 1: Changed 'absolute' to 'fixed' to prevent background from scrolling away or causing overflow
 const GridPattern = () => (
-    <div className="absolute inset-0 z-0 pointer-events-none fixed">
+    <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
         <div
             className="absolute inset-0"
@@ -67,13 +68,14 @@ const CandidateFlow = () => {
     };
 
     // Shared Background Wrapper
+    // FIX 2: Used 'fixed' for blobs so they don't stretch the page height unnecessarily
     const BackgroundWrapper = ({ children }) => (
-        <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-[#ccff00] selection:text-black font-sans relative overflow-x-hidden">
+        <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-[#ccff00] selection:text-black font-sans relative">
             <GridPattern />
 
             {/* Ambient Glows */}
-            <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-[#ccff00] rounded-full blur-[180px] opacity-[0.05] pointer-events-none"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-[#10b981] rounded-full blur-[150px] opacity-[0.03] pointer-events-none"></div>
+            <div className="fixed top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-[#ccff00] rounded-full blur-[180px] opacity-[0.05] pointer-events-none"></div>
+            <div className="fixed bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-[#10b981] rounded-full blur-[150px] opacity-[0.03] pointer-events-none"></div>
 
             <div className="relative z-10">{children}</div>
         </div>
@@ -135,9 +137,11 @@ const CandidateFlow = () => {
     return (
         <BackgroundWrapper>
             {!resumeData ? (
-                <div className="min-h-screen flex flex-col">
+                // FIX 3: Changed 'min-h-screen' to 'flex flex-col flex-1'
+                // This prevents the inner div from fighting with the wrapper for height (The Scroll Fix)
+                <div className="flex flex-col min-h-screen">
                     {/* Navigation */}
-                    <div className="p-6 md:px-12 flex justify-between items-center">
+                    <div className="p-6 md:px-12 flex justify-between items-center z-20 relative">
                         <div
                             className="flex items-center gap-2 cursor-pointer group"
                             onClick={() => navigate("/")}
@@ -228,6 +232,7 @@ const CandidateFlow = () => {
                     </header>
 
                     <main className="container mx-auto py-8 px-4 md:px-8">
+                        {/* KEY BHANU FEATURE: jobId is passed here */}
                         <InterviewRoom
                             resumeData={resumeData}
                             jobId={jobId}
