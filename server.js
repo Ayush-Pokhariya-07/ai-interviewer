@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const cookieParser = require('cookie-parser');
 
 // Load environment variables
 dotenv.config();
@@ -11,9 +12,13 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Serve static files from public directory
 app.use('/audio', express.static(path.join(__dirname, 'public/audio')));
@@ -45,6 +50,7 @@ app.get('/health', (req, res) => {
 });
 
 // Import routes
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/voice', require('./routes/voice'));
 app.use('/api/interview', require('./routes/interview'));
 app.use('/api/resume', require('./routes/resume'));
