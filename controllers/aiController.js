@@ -52,46 +52,12 @@ Job Requirements: ${jobContext.jobDescription}
 Difficulty Level: ${jobContext.difficulty}
 Interview Duration: ${jobContext.duration || "Standard Time"}.
 
-<<<<<<< HEAD
-        // Add resume context if provided
-        if (context) {
-            const contextPrefix = `The candidate is ${context.fullName
-                }. Skills: ${context.technicalSkills?.join(", ") || "Not specified"
-                }. Focus questions on: ${context.mostImpressiveProject || "their experience"
-                }. `;
-            systemPrompt = contextPrefix + systemPrompt;
-            console.log("📋 Using resume-aware context for interview");
-        }
-
-        const messages = [
-            { role: "system", content: systemPrompt },
-            ...conversationHistory,
-            { role: "user", content: userMessage },
-        ];
-
-        const chatCompletion = await groq.chat.completions.create({
-            messages: messages,
-            model: "llama-3.3-70b-versatile",
-            temperature: 0.7,
-            max_tokens: 150,
-            top_p: 1,
-            stream: false,
-        });
-
-        const aiResponse = chatCompletion.choices[0]?.message?.content || "";
-        if (!aiResponse) throw new Error("Empty response from AI");
-        return aiResponse;
-    } catch (error) {
-        console.error("Chat completion error:", error);
-        throw new Error(`Failed to get AI response: ${error.message}`);
-=======
 CONTEXT: This is a timed interview. The session will auto-close when the timer ends, so prioritize assessing key competencies quickly.
 Adjust your questions and expectations based on the ${
         jobContext.difficulty
       } difficulty level. `;
       systemPrompt = jobPrefix + systemPrompt;
       console.log("💼 Using job-specific context for interview");
->>>>>>> feature/auth-system
     }
 
     // 3. Add Resume Context
@@ -145,16 +111,6 @@ YOUR STRICT RULES:
  * Analyze interview transcript using Groq (Llama 3)
  */
 const analyzeInterview = async (conversationHistory, jobContext = null) => {
-<<<<<<< HEAD
-    try {
-        const transcript = conversationHistory
-            .map(
-                (msg) =>
-                    `${msg.role === "user" ? "Candidate" : "Interviewer"}: ${msg.content
-                    }`
-            )
-            .join("\n\n");
-=======
   try {
     const transcript = conversationHistory
       .map(
@@ -162,7 +118,6 @@ const analyzeInterview = async (conversationHistory, jobContext = null) => {
           `${msg.role === "user" ? "Candidate" : "Interviewer"}: ${msg.content}`
       )
       .join("\n\n");
->>>>>>> feature/auth-system
 
     // Build analysis prompt with job context if available
     let analysisSystemPrompt = `You are an expert Technical Interviewer. `;
@@ -304,65 +259,6 @@ const getChatResponseMiddleware = async (req, res) => {
 };
 
 const analyzeInterviewMiddleware = async (req, res) => {
-<<<<<<< HEAD
-    try {
-        const {
-            history,
-            jobContext,
-            candidateName,
-            jobRole,
-            difficulty,
-            duration,
-            jobId,
-        } = req.body;
-
-        if (!history || !Array.isArray(history) || history.length === 0) {
-            return res.status(400).json({
-                error: "No conversation history",
-                message: "Please provide history",
-            });
-        }
-
-        console.log(
-            "📊 Analyzing interview for:",
-            candidateName,
-            "| Role:",
-            jobRole
-        );
-
-        // Analyze the interview
-        const analysis = await analyzeInterview(history, jobContext || null);
-
-        // Save to database
-        try {
-            const Interview = require("../models/Interview");
-            const savedInterview = await Interview.create({
-                candidateName: candidateName || "Anonymous",
-                jobId: jobId || null,
-                jobRole: jobRole || "Practice Interview",
-                difficulty: difficulty || "N/A",
-                duration: duration || "N/A",
-                technicalScore: analysis.technical_score || 70,
-                communicationScore: analysis.communication_score || 70,
-                confidenceScore: analysis.confidence_score || 70,
-                feedback: analysis.feedback || [],
-                createdAt: new Date(),
-            });
-            console.log("✅ Interview saved to database:", savedInterview._id);
-        } catch (dbError) {
-            console.error("⚠️ Database save failed:", dbError.message);
-            // Continue anyway - analysis is more important than storage
-        }
-
-        res.json({ success: true, analysis: analysis });
-    } catch (error) {
-        console.error("Analysis middleware error:", error);
-        res.status(500).json({
-            success: false,
-            error: "Analysis failed",
-            message: error.message,
-        });
-=======
   try {
     const {
       history,
@@ -379,7 +275,6 @@ const analyzeInterviewMiddleware = async (req, res) => {
         error: "No conversation history",
         message: "Please provide history",
       });
->>>>>>> feature/auth-system
     }
 
     console.log(
