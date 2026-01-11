@@ -1,62 +1,40 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { createJobMiddleware, getJobMiddleware } = require('../controllers/jobController');
+const {
+  createJobMiddleware,
+  getJobMiddleware,
+  getRecruiterJobsMiddleware, // NEW: Add import
+} = require("../controllers/jobController");
 
 /**
- * @route   POST /api/jobs/create
- * @desc    Create a new job posting and get interview link
- * @access  Public
- * 
- * Request Body:
- * {
- *   "roleTitle": "Senior React Developer",
- *   "jobDescription": "We need someone with 5+ years React experience...",
- *   "difficulty": "Hard"
- * }
- * 
- * Response:
- * {
- *   "success": true,
- *   "data": {
- *     "id": "507f1f77bcf86cd799439011",
- *     "roleTitle": "Senior React Developer",
- *     "difficulty": "Hard",
- *     "createdAt": "2024-01-15T10:30:00.000Z"
- *   }
- * }
+ * POST /api/jobs/create
+ * Create a new job posting
  */
-router.post('/create', createJobMiddleware);
+router.post("/create", createJobMiddleware);
 
 /**
- * @route   GET /api/jobs/:id
- * @desc    Get job details by ID
- * @access  Public
- * 
- * Response:
- * {
- *   "success": true,
- *   "data": {
- *     "id": "507f1f77bcf86cd799439011",
- *     "roleTitle": "Senior React Developer",
- *     "jobDescription": "We need someone with...",
- *     "difficulty": "Hard",
- *     "createdAt": "2024-01-15T10:30:00.000Z"
- *   }
- * }
+ * GET /api/jobs/recruiter/all
+ * Get all jobs for a recruiter
+ * Query params: ?recruiterId=xxx
  */
-router.get('/:id', getJobMiddleware);
+router.get("/recruiter/all", getRecruiterJobsMiddleware);
 
 /**
- * @route   GET /api/jobs/health
- * @desc    Health check for jobs service
- * @access  Public
+ * GET /api/jobs/:id
+ * Get job details by ID
  */
-router.get('/check/health', (req, res) => {
-    res.json({
-        status: 'ok',
-        service: 'Jobs Service',
-        timestamp: new Date().toISOString()
-    });
+router.get("/:id", getJobMiddleware);
+
+/**
+ * GET /api/jobs/check/health
+ * Health check
+ */
+router.get("/check/health", (req, res) => {
+  res.json({
+    status: "ok",
+    service: "Jobs Service",
+    timestamp: new Date().toISOString(),
+  });
 });
 
 module.exports = router;
